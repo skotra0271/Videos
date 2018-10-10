@@ -1,10 +1,18 @@
 const express = require('express');
+const path = require('path');
 const exphbs = require('express-handlebars');
+const methodOverride = require('method-override');
+const flash = require('connect-flash');
+const session = require('express-session');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const app = express();
 
 const port = 5000;
+
+//Load Routes
+const ideas = require('./routes/ideas');
+const users = require('./routes/users');
 
 //Connect to mongoose
 mongoose.connect('mongodb://localhost/vidjot-dev', {
@@ -13,9 +21,7 @@ mongoose.connect('mongodb://localhost/vidjot-dev', {
   .then(() => { console.log('Mongo DB connected'); })
   .catch(err => console.log(err));
 
-//Load Idea model
-require('./models/Idea');
-const Idea = mongoose.model('ideas')
+
 
 //Handlebar middleware
 app.engine("handlebars", exphbs({
@@ -26,6 +32,30 @@ app.set('view engine', 'handlebars');
 //Body parser middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+//static folder
+app.use(express.static(path.join(__dirname,'public')));
+
+//Method override middleware
+app.use(methodOverride('_method'))
+
+//Exrepss session middleware
+app.use(session({
+  secret: 'secret',
+  resave: true,
+  saveUninitialized: true
+}));
+
+//Connect flash middle ware
+app.use(flash());
+
+//global variable
+app.use(function (req, res, next) {
+  res.locals.success_mg = req.flash('success_msg');
+  res.locals.error_mg = req.flash('error_msg');
+  res.locals.error = req.flash('error');
+  next();
+})
 
 //Index route
 app.get('/', (req, res) => {
@@ -42,67 +72,10 @@ app.get('/about', (req, res) => {
     title: pageTitle
   });
 })
-//Ideas listing
-app.get('/ideas', (req, res) => {
-  Idea.find({})
-    .sort({ date: 'desc' })
-    .then(Ideas => {
-      res.render('ideas/index', {
-        Ideas
-      })
-    })
 
-})
-
-//Add Ideas
-app.get('/ideas/add', (req, res) => {
-  pageTitle = 'Add Ideas Page'
-  res.render('ideas/add', {
-    title: pageTitle
-  });
-})
-//Edit Ideas
-app.get('/ideas/edit/:id', (req, res) => {
-  Idea.findOne({
-    _id: req.params.id
-  }).then(idea => {
-    res.render('ideas/edit', { idea });
-  })
-
-})
-
-//Process From
-app.post('/ideas', (req, res) => {
-  let errors = [];
-
-  if (!req.body.title) {
-    errors.push({ text: "Please add a title" })
-  }
-  if (!req.body.details) {
-    errors.push({ text: "Please add a details" })
-  }
-
-  if (errors.length > 0) {
-    res.render('ideas/add', {
-      errors: errors,
-      title: req.body.title,
-      details: req.body.details
-    });
-  }
-  else {
-    let newUser = {
-      title: req.body.title,
-      details: req.body.details
-    }
-
-    new Idea(newUser).save()
-      .then(idea => {
-        res.redirect('/ideas');
-      })
-
-  }
-
-})
+//use routes
+app.use('/ideas', ideas);
+app.use('/users', users);
 
 app.listen(port, () => {
   console.log(`server started on port ${port}`);
