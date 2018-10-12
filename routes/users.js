@@ -1,5 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const passport = require('passport');
 const router = express.Router();
 
 //Load user model
@@ -16,6 +18,16 @@ router.get('/login', (req, res) => {
 router.get('/register', (req, res) => {
   res.render('users/register');
 })
+
+//login Form Post
+router.post('/login', (req, res, next) => {
+  passport.authenticate('local', {
+    successRedirect: '/ideas',
+    failureRedirect: '/users/login',
+    failureFlash: true
+  })(req, res, next);
+
+});
 
 //Register form post
 router.post('/register', (req, res) => {
@@ -36,20 +48,45 @@ router.post('/register', (req, res) => {
     })
 
   } else {
-    let newUser = {
-      name: req.body.name,
-      email: req.body.email,
-      password:req.body.password,
-      password2:req.body.password2
-    }
-    new User(newUser).save()
-      .then(idea => {
-        req.flash('success_msg', 'New user  added');
-        res.redirect('/users/login');
+    User.findOne({ email: req.body.email })
+      .then(user => {
+        if (user) {
+          req.flash('error_msg', 'Email already exist');
+          res.redirect('/users/login');
+        }
+        else {
+          let newUser = new User({
+            name: req.body.fristname,
+            email: req.body.email,
+            password: req.body.password
+          });
+          bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash(newUser.password, salt, (err, hash) => {
+              if (err) throw err
+              newUser.password = hash;
+              newUser.save()
+                .then(idea => {
+                  req.flash('success_msg', 'New user  added');
+                  res.redirect('/users/login');
+                })
+                .catch(err => {
+                  console.log(err);
+                })
+            })
+          })
+        }
       })
+
+
 
   }
 
+})
+
+router.get('/logout', (req,res)=>{
+  req.logout();
+  req.flash('success_msg', 'you are logged out')
+  res.redirect('/users/login');
 })
 
 module.exports = router;

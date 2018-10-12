@@ -6,6 +6,7 @@ const flash = require('connect-flash');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const passport = require('passport');
 const app = express();
 
 const port = 5000;
@@ -13,6 +14,9 @@ const port = 5000;
 //Load Routes
 const ideas = require('./routes/ideas');
 const users = require('./routes/users');
+
+//Passport config
+require('./config/passport')(passport);
 
 //Connect to mongoose
 mongoose.connect('mongodb://localhost/vidjot-dev', {
@@ -46,14 +50,21 @@ app.use(session({
   saveUninitialized: true
 }));
 
+//Passport Middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
 //Connect flash middle ware
 app.use(flash());
 
+
+
 //global variable
 app.use(function (req, res, next) {
-  res.locals.success_mg = req.flash('success_msg');
-  res.locals.error_mg = req.flash('error_msg');
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
+  res.locals.user = req.user || null;
   next();
 })
 
