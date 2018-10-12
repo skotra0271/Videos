@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 const app = express();
 
-const port = 5000;
+const port = process.env.port || 5000;
 
 //Load Routes
 const ideas = require('./routes/ideas');
@@ -19,7 +19,8 @@ const users = require('./routes/users');
 require('./config/passport')(passport);
 
 //Connect to mongoose
-mongoose.connect('mongodb://localhost/vidjot-dev', {
+const db =  require('./config/database');
+mongoose.connect(db.mongoURI, {
   useNewUrlParser: true
 })
   .then(() => { console.log('Mongo DB connected'); })
