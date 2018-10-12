@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 const app = express();
 
-const port = process.env.port || 5000;
+const port = process.env.PORT || 5000;
 
 //Load Routes
 const ideas = require('./routes/ideas');
